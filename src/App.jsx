@@ -148,15 +148,14 @@ export default function App() {
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
           max_tokens: 1200,
-          system: `Eres una API que devuelve ÚNICAMENTE objetos JSON. Nunca escribes texto, explicaciones, saludos ni markdown. Tu respuesta siempre empieza con { y termina con }. Nada más.`,
+          system: `Eres una API de datos. Respondes ÚNICAMENTE con JSON válido. Sin texto, sin markdown, sin backticks. Solo JSON.`,
           messages: [
             {
               role: "user",
-              content: `Genera 10 negocios de tipo "${tipo}" en ${zona}, Bogotá, Colombia. Responde SOLO con este JSON exacto, sin texto antes ni después:\n{"places":[{"name":"string","address":"string","phone":"string o null","website":"string o null","hours":"string o null","rating":4.2,"lat":4.65,"lng":-74.05,"type":"string"}]}`
-            },
-            {
-              role: "assistant",
-              content: `{"places":[`
+              content: `Lista 10 negocios reales de tipo "${tipo}" en el barrio ${zona} de Bogotá Colombia.
+
+Formato de respuesta (solo esto, nada más):
+{"places":[{"name":"Droguería La Esperanza","address":"Calle 12 #23-45, ${zona}, Bogotá","phone":"3201234567","website":null,"hours":"Lun-Sab 8am-8pm","rating":4.3,"lat":4.6097,"lng":-74.0817,"type":"${tipo}"},{"name":"...","address":"...","phone":"...","website":null,"hours":"...","rating":4.1,"lat":4.61,"lng":-74.08,"type":"${tipo}"}]}`
             }
           ]
         })
@@ -167,14 +166,10 @@ export default function App() {
 
       let parsed;
       try {
-        // El prefill hace que la respuesta empiece con `"places":[` — reconstruimos el objeto
         let clean = text.replace(/^```json|^```|```$/gm, "").trim();
-        // Si el modelo continuó el prefill, el texto empieza con "places":[ ...
-        if (!clean.startsWith("{")) clean = '{"places":[' + clean;
-        // Asegura que cierre bien
-        if (!clean.endsWith("}")) clean = clean.replace(/,?\s*$/, "") + "]}";
-        const match = clean.match(/\{[\s\S]*"places"[\s\S]*\}/);
+        const match = clean.match(/\{[\s\S]*\}/);
         parsed = JSON.parse(match ? match[0] : clean);
+        if (!parsed.places || !Array.isArray(parsed.places)) throw new Error();
       } catch {
         throw new Error("Error al interpretar la respuesta. Intenta de nuevo.");
       }
