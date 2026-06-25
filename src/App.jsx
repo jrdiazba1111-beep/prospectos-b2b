@@ -162,17 +162,14 @@ Formato de respuesta (solo esto, nada más):
       });
 
       const data = await res.json();
-      const text = data.content?.map(b => b.text || "").join("").trim() || "";
 
-      let parsed;
-      try {
-        let clean = text.replace(/^```json|^```|```$/gm, "").trim();
-        const match = clean.match(/\{[\s\S]*\}/);
-        parsed = JSON.parse(match ? match[0] : clean);
-        if (!parsed.places || !Array.isArray(parsed.places)) throw new Error();
-      } catch {
-        throw new Error("Error al interpretar la respuesta. Intenta de nuevo.");
+      // Si el backend devolvió error de parseo, mostrar info de debug
+      if (data.error === "parse_failed") {
+        throw new Error("Respuesta inesperada de la IA. Intenta de nuevo.");
       }
+      if (data.error) throw new Error(data.error);
+
+      const parsed = data;
 
       const places = (parsed.places || []).map((p, i) => ({
         place_id: `p${i}`,
