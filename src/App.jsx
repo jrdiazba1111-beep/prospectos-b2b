@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
-const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_KEY;
+
 
 const BARRIOS = [
   "Chapinero","Usaquén","Suba","Engativá","Fontibón","Kennedy","Bosa",
@@ -140,11 +140,7 @@ export default function App() {
     if (!zona) return;
     setLoading(true); setError(""); setResults([]); setSelected({}); setShowMap(false); setSearched(false);
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": ANTHROPIC_KEY,
+": ANTHROPIC_KEY,
           "anthropic-version": "2023-06-01",
           "anthropic-dangerous-direct-browser-access": "true",
         },
