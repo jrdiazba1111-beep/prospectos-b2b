@@ -140,21 +140,25 @@ export default function App() {
     if (!zona) return;
     setLoading(true); setError(""); setResults([]); setSelected({}); setShowMap(false); setSearched(false);
     try {
-": ANTHROPIC_KEY,
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true",
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
           max_tokens: 1200,
-          system: `Eres un generador de datos JSON. Respondes ÚNICAMENTE con JSON válido, sin texto adicional, sin explicaciones, sin backticks, sin markdown. Solo el objeto JSON.`,
-          messages: [{
-            role: "user",
-            content: `Genera una lista de 10 negocios representativos del tipo "${tipo}" ubicados en el barrio ${zona} de Bogotá, Colombia.
-
-Responde SOLO con este JSON (sin nada más):
-{"places":[{"name":"nombre del negocio","address":"dirección en ${zona} Bogotá","phone":"teléfono colombiano o null","website":"url o null","hours":"Lun-Vie 8am-6pm o null","rating":4.2,"lat":4.65,"lng":-74.05,"type":"tipo"}]}`
-          }]
+          system: `Eres una API que devuelve ÚNICAMENTE objetos JSON. Nunca escribes texto, explicaciones, saludos ni markdown. Tu respuesta siempre empieza con { y termina con }. Nada más.`,
+          messages: [
+            {
+              role: "user",
+              content: `Genera 10 negocios de tipo "${tipo}" en ${zona}, Bogotá, Colombia. Responde SOLO con este JSON exacto, sin texto antes ni después:\n{"places":[{"name":"string","address":"string","phone":"string o null","website":"string o null","hours":"string o null","rating":4.2,"lat":4.65,"lng":-74.05,"type":"string"}]}`
+            },
+            {
+              role: "assistant",
+              content: `{"places":[`
+            }
+          ]
         })
       });
 
@@ -163,7 +167,12 @@ Responde SOLO con este JSON (sin nada más):
 
       let parsed;
       try {
-        const clean = text.replace(/^```json|^```|```$/gm, "").trim();
+        // El prefill hace que la respuesta empiece con `"places":[` — reconstruimos el objeto
+        let clean = text.replace(/^```json|^```|```$/gm, "").trim();
+        // Si el modelo continuó el prefill, el texto empieza con "places":[ ...
+        if (!clean.startsWith("{")) clean = '{"places":[' + clean;
+        // Asegura que cierre bien
+        if (!clean.endsWith("}")) clean = clean.replace(/,?\s*$/, "") + "]}";
         const match = clean.match(/\{[\s\S]*"places"[\s\S]*\}/);
         parsed = JSON.parse(match ? match[0] : clean);
       } catch {
